@@ -15,6 +15,7 @@ import XMonad.Layout.NoBorders
 import XMonad.Layout.Spacing
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.Reflect
+import XMonad.Layout.Maximize
 import XMonad.Layout.IM
 import XMonad.Layout.PerWorkspace (onWorkspace, onWorkspaces)
 import XMonad.Layout.NoBorders
@@ -45,7 +46,7 @@ myTerminal = "/usr/bin/urxvt"
 -- Workspaces
 --
 
-myWorkspaces = ["main","text","dev","web","mail","chat","media","gimp"]
+myWorkspaces = ["main","text","dev","web","mail","chat","media","gimp","games"]
 
 
 ------------------------------------------------------------------------
@@ -72,19 +73,22 @@ myManageHook = composeAll . concat $
     -- Applications that go to media.
     , [ className =? g --> viewShift "media" | g <- myClassMediaShifts ]
 
+    -- Applications that go to games.
+    , [ className =? h --> viewShift "games" | h <- myClassGamesShifts ]
+
     -- Gimp goes to its own workspace.
-    , [ className =? h --> viewShift "gimp" | h <- myGimpShift ]
+    , [ className =? i --> viewShift "gimp" | i <- myGimpShift ]
 
     -- Applications that need floating regardless of workspace.
-    , [ className =? i --> doCenterFloat | i <- myClassFloats ]
-    , [ resource  =? j --> doCenterFloat | j <- myResourceFloats ]
+    , [ className =? j --> doCenterFloat | j <- myClassFloats ]
+    , [ resource  =? k --> doCenterFloat | k <- myResourceFloats ]
 
     -- Applications that need to be ignored.
-    , [ className =? k --> doIgnore | k <- myClassIgnores ]
-    , [ resource  =? l --> doIgnore | l <- myResourceIgnores ]
+    , [ className =? l --> doIgnore | l <- myClassIgnores ]
+    , [ resource  =? m --> doIgnore | m <- myResourceIgnores ]
 
     -- Applications that need to be added to slave panel when created.
-    , [ className =? "urxvt" --> doF (W.swapDown) ]
+    --, [ className =? "urxvt" --> doF (W.swapDown) ]
 
     , [ composeOne [ isFullscreen -?> (doF W.focusDown <+> doFullFloat) ] ]
   ]
@@ -95,8 +99,9 @@ myManageHook = composeAll . concat $
       myClassWebShifts   = ["Firefox","Chromium"]
       myClassMailShifts  = ["Thunderbird"]
       myClassChatShifts  = ["Pidgin", "Skype", "weechat"]
-      myClassMediaShifts = ["Audacity", "vlc"]
+      myClassMediaShifts = ["Audacity", "vlc", "ncmpcpp", "alsamixer"]
       myGimpShift        = ["Gimp"]
+      myClassGamesShifts = ["Steam"]
       myClassFloats      = ["feh", "mpv", "Transmission-gtk", "Nm-connection-editor", "File Operation Progress"]
       myResourceFloats   = ["Downloads", "Dialog", "Places", "Browser"]
       myClassIgnores     = ["stalonetray"]
@@ -109,6 +114,7 @@ myManageHook = composeAll . concat $
 
 myLayoutHook = onWorkspace "chat" chatLayout $
                onWorkspace "gimp" gimpLayout $
+               maximize $
                standardLayouts
     where
       standardLayouts = avoidStruts(Tall 1 (3/100) (1/2) ||| Mirror (Tall 1 (3/100) (1/2)))
@@ -124,6 +130,7 @@ myLayoutHook = onWorkspace "chat" chatLayout $
 magenta   = "#ed6666"
 green     = "#83be49"
 yellow    = "#ffff00"
+orange    = "#ff9c00"
 violet    = "#b98a93"
 blue      = "#468284"
 white     = "#cccccc"
@@ -132,13 +139,14 @@ darkGrey  = "#444444"
 black     = "#000000"
 lime      = "#7aba7a"
 
+mainDark = "#101010"
+
 -- Border colors
 myNormalBorderColor  = darkGrey
 myFocusedBorderColor = lime
 
 -- Width of the window border in pixels.
 myBorderWidth = 2
-
 
 ------------------------------------------------------------------------
 -- Key bindings
@@ -149,27 +157,50 @@ myBorderWidth = 2
 -- "windows key" is usually mod4Mask.
 --
 myModMask = mod1Mask
+appMask = mod4Mask
 
 myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
   ----------------------------------------------------------------------
   -- Custom key bindings
   --
 
+  [
+  ----------------------------------------------------------------------
+  -- Application keybinds
+  --
+
   -- Start a terminal.  Terminal to start is specified by myTerminal variable.
-  [ ((modMask .|. shiftMask, xK_Return),
-     spawn $ XMonad.terminal conf)
+    ((appMask, xK_Return), spawn $ XMonad.terminal conf)
+
+  -- Launch dmenu.
+  , ((appMask, xK_BackSpace), spawn "dmenu_run -fn 'Menlo for Powerline' -y 270 -x 320 -w 1280 -p '>' -q -r -z -dim 0.7 -l 22 -nb '#101010' -nf '#cfcfcf' -sb '#ed6666' -sf '#000000'")
+
+  -- Launch weechat
+  , ((appMask, xK_i), spawn "urxvt -name weechat -e weechat-curses")
+
+  -- Launch ranger
+  , ((appMask, xK_space), spawn "urxvt -name ranger -e zsh -c ranger")
+
+  -- Launch firefox
+  , ((appMask, xK_f), spawn "firefox")
+
+  -- Launch ncmpcpp
+  -- (Multimedia key)
+  , ((0, 0x1008ff32), spawn "urxvt -name ncmpcpp -e ncmpcpp")
+  -- (Custom shortcut)
+  , ((appMask, xK_m), spawn "urxvt -name ncmpcpp -e ncmpcpp")
+
+  ----------------------------------------------------------------------
+  -- Xmonad controls
+  --
 
   , ((modMask .|. controlMask, xK_Right), nextWS)
   , ((modMask .|. controlMask, xK_Left), prevWS)
   , ((modMask .|. controlMask, xK_Up), replicateM_ 4 $ nextWS)
   , ((modMask .|. controlMask, xK_Down), replicateM_ 4 $ prevWS)
 
-  , ((modMask, xK_Up), rotFocusedUp)
-  , ((modMask, xK_Down), rotFocusedDown)
-
-  -- Launch dmenu.
-  , ((modMask, xK_p),
-     spawn "dmenu_run -fn 'Inconsolata-dz for Powerline-10' -l 22 -nb '#000000' -nf '#cfcfcf' -sb '#ff807a' -sf '#000000'")
+  , ((modMask .|. shiftMask, xK_Up), rotFocusedUp)
+  , ((modMask .|. shiftMask, xK_Down), rotFocusedDown)
 
   -- Lock the screen using xscreensaver.
   , ((modMask .|. controlMask, xK_l),
@@ -190,14 +221,9 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
   , ((modMask .|. controlMask, xK_o),
      spawn "~/.xmonad/scripts/screen off")
 
-  -- Launch weechat
-  , ((modMask, xK_i), spawn "urxvt -name weechat -e weechat-curses")
 
-  -- Launch ranger
-  , ((modMask .|. controlMask, xK_space), spawn "urxvt -name ranger -e zsh -c ranger")
-
-  -- Launch firefox
-  , ((modMask, xK_f), spawn "firefox")
+  -- Maximize window
+  , ((modMask, xK_Up), withFocused (sendMessage . maximizeRestore))
 
   -- Mute volume.
   , ((0 , 0x1008ff12),
@@ -324,10 +350,10 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
       , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
   ++
 
-  -- mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3
-  -- mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
+  -- mod-{z,e,r}, Switch to physical/Xinerama screens 1, 2, or 3
+  -- mod-shift-{z,e,r}, Move client to screen 1, 2, or 3
   [((m .|. modMask, key), screenWorkspace sc >>= flip whenJust (windows . f))
-      | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
+      | (key, sc) <- zip [xK_z, xK_e, xK_r] [0..]
       , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
 
 
@@ -368,19 +394,19 @@ myPrettyPrinter h = dzenPP
   {
     ppOutput          = hPutStrLn h
   , ppCurrent         = dzenColor black magenta . pad
-  , ppHidden          = dzenColor white black . pad . clickable myWorkspaces . trimSpace
-  , ppHiddenNoWindows = dzenColor darkGrey black . pad . clickable myWorkspaces . trimSpace
-  , ppUrgent          = dzenColor black yellow . pad . clickable myWorkspaces . trimSpace . dzenStrip
-  , ppWsSep           = " "
+  , ppHidden          = dzenColor white mainDark . pad . clickable myWorkspaces . trimSpace
+  , ppHiddenNoWindows = dzenColor darkGrey mainDark . pad . clickable myWorkspaces . trimSpace
+  , ppUrgent          = dzenColor black orange . pad . clickable myWorkspaces . trimSpace . dzenStrip
+  , ppWsSep           = " · "
   , ppSep             = " | "
-  , ppTitle           = (" " ++) . dzenColor magenta black . shorten 120 . dzenEscape
-  , ppLayout          = dzenColor white black . pad .
+  , ppTitle           = (" " ++) . dzenColor magenta mainDark . shorten 120 . dzenEscape
+  , ppLayout          = dzenColor white mainDark . pad .
                         (\x -> case x of
-                          "SimplestFloat"              -> "Float"
-                          "SmartSpacing 2 Tall"        -> "Tall"
-                          "SmartSpacing 2 Mirror Tall" -> "Mirror"
-                          "Spacing 2 IM"               -> "IM"
-                          _                            -> x
+                          "SimplestFloat"                   -> "Float"
+                          "Spacing 10 Maximize Tall"        -> "Tall"
+                          "Spacing 10 Maximize Mirror Tall" -> "Mirror"
+                          "Spacing 10 IM"                   -> "IM"
+                          _                                 -> x
                         )
   }
 
@@ -395,55 +421,51 @@ clickableExp (ws:other) n l | l == ws = "^ca(1,xdotool key super+" ++ show (n) +
 trimSpace = f . f
     where f = reverse . dropWhile isSpace
 
-myDzenFont = "Inconsolata-dz for Powerline:pixelsize=12"
+myDzenFont = "Menlo for Powerline:pixelsize=12"
 
--- Workspace dzen bar
-myWorkDzen = DzenConf {
-    x_position = Just 0
-  , y_position = Just 0
-  , width      = Just 1810
-  , height     = Just 22
-  , alignment  = Just LeftAlign
-  , font       = Just myDzenFont
-  , fg_color   = Just lightGrey
-  , bg_color   = Just black
-  , exec       = []
+myDzen = DzenConf {
+    font       = Just myDzenFont
+  , bg_color   = Just mainDark
+  , exec       = ["button2=;"]
   , addargs    = []
 }
 
+-- Workspace dzen bar
+myWorkDzen = myDzen {
+    x_position = Just 0
+  , y_position = Just 0
+  , width      = Just 1810
+  , height     = Just 32
+  , alignment  = Just LeftAlign
+  , fg_color   = Just lightGrey
+}
+
 -- Music dzen bar
-myMusicDzen = DzenConf {
+myMusicDzen = myDzen {
     x_position = Just 0
   , y_position = Just 1080
   , width      = Just 700
   , height     = Just 24
   , alignment  = Just LeftAlign
-  , font       = Just myDzenFont
   , fg_color   = Just violet
-  , bg_color   = Just black
-  , exec       = []
-  , addargs    = []
 }
 
 -- System information dzen bar
-mySysInfoDzen = DzenConf {
+mySysInfoDzen = myDzen {
     x_position = Just 700
   , y_position = Just 1080
   , width      = Just 1220
   , height     = Just 24
   , alignment  = Just RightAlign
-  , font       = Just myDzenFont
   , fg_color   = Just green
-  , bg_color   = Just black
-  , exec       = []
-  , addargs    = []
 }
 
 ------------------------------------------------------------------------
 -- Startup hook
 -- By default, do nothing.
 --
-myStartupHook = return ()
+myStartupHook =
+    return ()
 
 
 ------------------------------------------------------------------------
