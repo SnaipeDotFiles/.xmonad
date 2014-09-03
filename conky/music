@@ -16,5 +16,5 @@ mpd_host /home/snaipe/.mpd/socket
 mpd_port 6600
 
 TEXT
-^bg(\#1e1e1e)^fg() Music ^bg()^fg(\#cccccc) ${mpd_artist 30} - ${mpd_title 40} ($mpd_length) \
+^bg(\#1e1e1e)^fg() Music ^bg()^fg(\#cccccc) ${scroll 25 2 $mpd_artist - $mpd_title} [$mpd_elapsed/$mpd_length] \
 ^bg(\#1e1e1e)^fg() Volume ^bg()^fg(\#cccccc) ${exec amixer get Master | grep -Eo "[0-9]+%" | head -n 1} \
